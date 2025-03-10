@@ -52,7 +52,7 @@ let isUpdating = false;
 
 export const updateTxListToDb = async (
     collectionName: string,
-    dataType: string,
+    category: string,
     _mongoUrl: string = configs.mongoUri
 ): Promise<boolean> => {
     if (isUpdating) {
@@ -75,9 +75,9 @@ export const updateTxListToDb = async (
     try {
         await client.connect(); // ✅ MongoDB 연결을 기다려야 함
         const database = client.db("TransactionLists");
-        const collection = database.collection<TxDocument>(`${collectionName}/${dataType}`);
+        const collection = database.collection<TxDocument>(`${collectionName}/${category}`);
         const targetWallet = new PublicKey(collectionName);
-        const new_sig = await fetchSignaturesForCache(targetWallet, dataType);
+        const new_sig = await fetchSignaturesForCache(targetWallet, category);
 
         for (const sig of new_sig) {
             await collection.updateOne(
@@ -159,7 +159,6 @@ export const getTransactionInfoFromCacheDb = async (transactionId: string, merkl
         console.log('Data found in MongoDB');
         return cachedData
     } else {
-
         console.log('Data not found in MongoDB, fetching from blockchain...');
         try {
             const {result, type, blockTime} = await tp.readTransactionResult(transactionId);
@@ -168,7 +167,9 @@ export const getTransactionInfoFromCacheDb = async (transactionId: string, merkl
                 let chunks: string[] = [];
                 if (type == "image") {
                     chunks = getDecodedChunks(resultReverse, blockTime);
-                } else if (type == "text" || type == "json" ||type == "love_letter") {
+                }
+                //else if (type == "text" || type == "json" ||type == "love_letter") {
+                else{
                     chunks = getChunks(resultReverse);
                 }
 

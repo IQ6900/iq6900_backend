@@ -99,14 +99,14 @@ export const getCache = async (req: Request, res: Response): Promise<void> => {
 
 export const getCachedTxList = async (req: Request, res: Response): Promise<void> => {
     try {
-        const {targetName, dataType, lastBlock = 99999999999, mongoUrl = configs.mongoUri} = req.query;
+        const {targetAddress, category, lastBlock = 99999999999, mongoUrl = configs.mongoUri} = req.query;
 
-        const _target = String(targetName);
-        const _dataType = String(dataType);
+        const _target = String(targetAddress);
+        const _category = String(category);
         const _lastBlock = Number(lastBlock);
         const _mongoUrl = String(mongoUrl);
 
-        const response = await cp.getTxListFromDb(_target, _dataType, _lastBlock, _mongoUrl); // 결과를 기다림
+        const response = await cp.getTxListFromDb(_target, _category, _lastBlock, _mongoUrl); // 결과를 기다림
         res.send(response);
     } catch (error) {
         if (error instanceof Error) {
@@ -120,12 +120,12 @@ export const getCachedTxList = async (req: Request, res: Response): Promise<void
 
 export const updateCachedTxList = async (req: Request, res: Response): Promise<void> => {
     try {
-        const {targetName, dataType, mongoUrl = configs.mongoUri} = req.body;
-        const _target = String(targetName);
-        const _dataType = String(dataType);
+        const {targetAddress, category, mongoUrl = configs.mongoUri} = req.body;
+        const _target = String(targetAddress);
+        const _category = String(category);
         const _mongoUrl = String(mongoUrl);
 
-        const response = await cp.updateTxListToDb(_target, _dataType, _mongoUrl); // 결과를 기다림
+        const response = await cp.updateTxListToDb(_target, _category, _mongoUrl); // 결과를 기다림
         res.send(response);
     } catch (error) {
         if (error instanceof Error) {
