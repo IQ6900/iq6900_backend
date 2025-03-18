@@ -145,64 +145,7 @@ export const readTransactionResult = async (transaction: string): Promise<any> =
 
     return {result, type, blockTime}; // 결과 반환
 }
-// export const readTransactionResult2 = async (transaction: string): Promise<any> => {
-//     const connection = new Connection(configs.network);
-//     let result: any[] = []; // 결과를 저장할 배열
-//     let lastArgs: any = undefined; // 결과를 저장할 배열
-//     let type: string = "";
-//     try {
-//         const tx = await connection.getTransaction(transaction);
-//         if (tx) {
-//             const instructions = tx.transaction.message.instructions;
-//             for (const instruction of instructions) {
-//                 const coder = new BorshInstructionCoder(idl as Idl);
-//                 const args = coder.decode(instruction.data, "base58");
-//                 if (args) {
-//                     lastArgs = args.data;
-//                     type = lastArgs["type_field"];
-//                 }
-//             }
-//         }
-//     } catch (err) {
-//         console.error("Error fetching transaction:", err);
-//     }
 
-//     try {
-//         let tailTx = lastArgs["tail_tx"];
-//         const lastTx = await connection.getTransaction(tailTx);
-//         if (!lastTx) {
-//             return;
-//         }
-//         const confirmedSignatures = await connection.getSignaturesForAddress(
-//             new PublicKey(lastTx.transaction.message.accountKeys[0]),
-//             {
-//                 before: transaction,
-//                 limit: 6
-//             }
-//         );
-//         const txList = await connection.getTransactions(confirmedSignatures.map((s) => s.signature));
-//         for (const tx of txList) {
-//             if (tx) {
-//                 const instructions = tx.transaction.message.instructions;
-//                 for (const instruction of instructions) {
-//                     const coder = new BorshInstructionCoder(idl as Idl);
-//                     const args = coder.decode(instruction.data, "base58");
-//                     if (args) {
-//                         lastArgs = args.data;
-//                         result.push(lastArgs);
-//                     }
-//                     if (lastArgs["before_tx"] !== null && lastArgs["before_tx"] === 'Genesis') {
-//                         break;
-//                     }
-//                 }
-//             }
-//         }
-//     } catch (err) {
-//         console.error("Error fetching transaction:", err);
-//     }
-
-//     return { result, type }; // 결과 반환
-// }
 export const createSendTransaction = async (userKeyString: any, code: any, before_tx: any, method: any, decode_break: any) => {
     try {
         const userKey: any = new PublicKey(userKeyString);

@@ -13,6 +13,7 @@ export default (router: Router): void => {
     r.get('/initialize-user/:userKey', controller.initializeUser);
     r.get('/get_transaction_info/:txId', controller.getTransactionInfo);
     r.get('/get_transaction_result/:tailTx', controller.getTransactionResult);
+    r.get('/get_ascii_chunks/:imageUrl', controller.getAsciiChunks);
 
     r.post('/update-tx-list', controller.updateCachedTxList);
     r.post('/create-send-transaction', controller.createTransaction);

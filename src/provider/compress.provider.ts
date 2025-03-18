@@ -1,5 +1,9 @@
+import {generateMerkleRoot} from "./main.provider";
+import {imgToAsciiArt} from "./generate.provider";
+
 const CHARSET = Array.from({length: 127}, (_, i) => String.fromCharCode(i)).join('');
 const DecodeMaxSize = 10000;
+const contractChunkSize = 850;
 
 function addLines(beforeStr: string, width: number) {
     let result:string[] = [];
@@ -15,17 +19,48 @@ function _getChunk(message: string, chunkSize: number) {
     }
     return chunks;
 }
-// function _getChunk(message: string, chunkSize: number) {
-//     const msglength = message.length;
-//     const totalChunks = Math.ceil(msglength / chunkSize);
-//     let chunks: string[] = [];
-//     for (let i = 0; i < totalChunks; i++) {
-//         const start = i * chunkSize;
-//         const end = Math.min(start + chunkSize, msglength);
-//         chunks.push(message.slice(start, end));
-//     }
-//     return chunks;
-// }
+interface compressedChunk {
+    method: number,
+    result: string
+}
+interface chunkObjectType  {
+    text_list: string[],
+    method: number,//offset
+}
+export async function makeAsciiChunks(imgUrl:string) {
+    let originalChunks:string[] = []
+    let compressedChunks: compressedChunk[] = []
+    let totalChunks:chunkObjectType[] = []
+    let chunkSize = 0;
+    let asciiString =await imgToAsciiArt(imgUrl)
+    if (asciiString) {
+        let ascii = asciiString.replace(/\n/g, "");  // 모든 \n을 빈 문자열로 대체
+        originalChunks = _getChunk(ascii, DecodeMaxSize);
+        const merkleroot = generateMerkleRoot(originalChunks);
+
+        for (let originalChunk of originalChunks) {
+            let _compressChunk = compress(originalChunk);
+            compressedChunks.push(_compressChunk);
+        }
+        for (let compressChunk of compressedChunks) {
+            let _contractchunks = _getChunk(compressChunk.result, contractChunkSize);
+            const chunkObj: chunkObjectType = {
+                text_list: _contractchunks,
+                method: compressChunk.method,//offset
+            }
+            await totalChunks.push(chunkObj);
+            chunkSize += _contractchunks.length;
+        }
+        const resultObj = {
+            chunkList: totalChunks,
+            chunkSize: chunkSize,
+            merkleRoot: merkleroot,
+        }
+        return resultObj;
+    }else{
+        return false;
+    }
+}
 
 function extractValue(text: string, key: string) {
     const regex = new RegExp(`${key}:\\s*(\\d+)`); // key와 숫자 값을 찾는 정규식
@@ -217,21 +252,19 @@ function decryptBase7(base10number: bigint): string {
     return mapNumbersToText(decodedBase7);
 }
 
-function compress(originalText: string, maxlen: number = 10000): [number, string] {
+function compress(originalText: string): compressedChunk{
     const splitText = originalText.split(']');
     let text = splitText.length > 1 ? splitText[1] : originalText;
     text = text.replace(/\n/g, '');
 
     let result = '-1';
     let method = -1;
-
     let rlenum: string;
     try {
         rlenum = makeRleList(text);
     } catch {
         rlenum = text;
     }
-
     if (rlenum.length < text.length * 85 / 100) {
         method = 0;
         console.log("optimise with rle");
@@ -258,8 +291,9 @@ function compress(originalText: string, maxlen: number = 10000): [number, string
     if (splitText.length > 1) {
         result = splitText[0] + ' ]' + result;
     }
+    let finalResult:compressedChunk = {method:method, result:result};
 
-    return [method, result];
+    return finalResult;
 }
 
 function decompress(compressedText: string, methodNum: number, maxlen: number = 10000): string {
@@ -293,6 +327,7 @@ function decompress(compressedText: string, methodNum: number, maxlen: number = 
     }
     return asciiText;
 }
+
 
 export const decodeByChunks = (chunks: any) => {
     let compressedText: string = "";

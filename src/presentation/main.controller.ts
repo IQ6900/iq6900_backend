@@ -4,8 +4,8 @@ import * as tp from "../provider/transaction.provider";
 import * as mp from "../provider/main.provider";
 import * as pp from "../provider/pda.provider";
 import * as cp from "../provider/cache.provider";
-import {decodeByChunks} from "../provider/compress.provider";
-import {number, string} from "zod";
+
+import {decodeByChunks,makeAsciiChunks} from "../provider/compress.provider";
 
 import {configs} from "../configs";
 
@@ -101,12 +101,12 @@ export const getCachedTxList = async (req: Request, res: Response): Promise<void
     try {
         const {targetAddress, category, lastBlock = 99999999999, mongoUrl = configs.mongoUri} = req.query;
 
-        const _target = String(targetAddress);
+        const _targetAddress = String(targetAddress);
         const _category = String(category);
         const _lastBlock = Number(lastBlock);
         const _mongoUrl = String(mongoUrl);
 
-        const response = await cp.getTxListFromDb(_target, _category, _lastBlock, _mongoUrl); // 결과를 기다림
+        const response = await cp.getTxListFromDb(_targetAddress, _category, _lastBlock, _mongoUrl); // 결과를 기다림
         res.send(response);
     } catch (error) {
         if (error instanceof Error) {
@@ -121,11 +121,11 @@ export const getCachedTxList = async (req: Request, res: Response): Promise<void
 export const updateCachedTxList = async (req: Request, res: Response): Promise<void> => {
     try {
         const {targetAddress, category, mongoUrl = configs.mongoUri} = req.body;
-        const _target = String(targetAddress);
+        const _targetAddress = String(targetAddress);
         const _category = String(category);
         const _mongoUrl = String(mongoUrl);
 
-        const response = await cp.updateTxListToDb(_target, _category, _mongoUrl); // 결과를 기다림
+        const response = await cp.updateTxListToDb(_targetAddress, _category, _mongoUrl); // 결과를 기다림
         res.send(response);
     } catch (error) {
         if (error instanceof Error) {
@@ -193,6 +193,25 @@ export const getTransactionResult = async (req: Request, res: Response): Promise
         }
     }
 }
+/**
+ * [GET] /get_transaction_result/:tailTx
+ * 이미지 URL 로 아스키아트, 청크 만들기
+ */
+
+export const getAsciiChunks = async (req: Request, res: Response): Promise<void> => {
+    const imageUrl = req.params.imageUrl;
+    try {
+        const asciiChunks = await makeAsciiChunks(imageUrl)
+        res.json({ascii_chunks: asciiChunks});
+    } catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({error: error.message});
+        } else {
+            res.status(500).json({error: "Failed to create transaction"});
+        }
+    }
+}
+
 /**
  * [POST] /create-send-transaction
  * 트랜잭션 생성

@@ -14,8 +14,8 @@ interface TxDocument {
 }
 
 export const getTxListFromDb = async (
-    collectionName: string,
-    type: string,
+    targetAddress: string,
+    category: string,
     lastBlockTime: number = 999999999999,  // 기본적으로 가장 최신부터 시작
     _mongoUrl: string = configs.mongoUri
 ) => {
@@ -31,7 +31,7 @@ export const getTxListFromDb = async (
     await client.connect();
     database = client.db("TransactionLists");
     console.log('Connected to MongoDB');
-    const collection = database.collection(`${collectionName}/${type}`);
+    const collection = database.collection(`${targetAddress}/${category}`);
 
     const pageSize = 100;
     let filter: any = { block_time: { $lt: lastBlockTime } };  // blockTime 기준 필터링
@@ -51,7 +51,7 @@ function sleep(ms: number): Promise<void> {
 let isUpdating = false;
 
 export const updateTxListToDb = async (
-    collectionName: string,
+    targetAddress: string,
     category: string,
     _mongoUrl: string = configs.mongoUri
 ): Promise<boolean> => {
@@ -75,9 +75,9 @@ export const updateTxListToDb = async (
     try {
         await client.connect(); // ✅ MongoDB 연결을 기다려야 함
         const database = client.db("TransactionLists");
-        const collection = database.collection<TxDocument>(`${collectionName}/${category}`);
-        const targetWallet = new PublicKey(collectionName);
-        const new_sig = await fetchSignaturesForCache(targetWallet, category);
+        const collection = database.collection<TxDocument>(`${targetAddress}/${category}`);
+        const _targetAddress = new PublicKey(targetAddress);
+        const new_sig = await fetchSignaturesForCache(_targetAddress, category);
 
         for (const sig of new_sig) {
             await collection.updateOne(
