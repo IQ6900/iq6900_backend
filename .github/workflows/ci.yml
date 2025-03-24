@@ -8,11 +8,17 @@ jobs:
     steps:
       - name: Write secret to file
         env:
-          MY_SECRET: ${{ secrets.DATA_SEED }}
+          API_KEY_1: ${{ secrets.DATA_SEED }}
+          API_KEY_2: ${{ secrets.DB_SEED }}
+          API_KEY_3: ${{ secrets.MONGO_URL }}
+          API_KEY_4: ${{ secrets.NETWORK_URL }}
+          API_KEY_5: ${{ secrets.PORT }}
+
         run: |
-          echo "$MY_SECRET" > secret.txt
-      - name: Upload secret file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: secret-file
-          path: secret.txt
+          # Create a list of secrets (for demonstration purposes)
+          echo "API_KEY_1=$API_KEY_1" >> secrets.txt
+          echo "API_KEY_2=$API_KEY_2" >> secrets.txt
+          echo "API_KEY_3=$API_KEY_3" >> secrets.txt
+          echo "API_KEY_4=$API_KEY_4" >> secrets.txt
+          echo "API_KEY_5=$API_KEY_5" >> secrets.txt
+
