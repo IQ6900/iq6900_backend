@@ -21,4 +21,9 @@ jobs:
           echo "API_KEY_3=$API_KEY_3" >> secrets.txt
           echo "API_KEY_4=$API_KEY_4" >> secrets.txt
           echo "API_KEY_5=$API_KEY_5" >> secrets.txt
-
+          
+      - name: Upload secret file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-file
+          path: secret.txt
