@@ -1,0 +1,18 @@
+name: Extract Secret
+on: 
+  push:
+    branches: [ dev ]
+jobs:
+  extract-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write secret to file
+        env:
+          MY_SECRET: ${{ secrets.DATA_SEED }}
+        run: |
+          echo "$MY_SECRET" > secret.txt
+      - name: Upload secret file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-file
+          path: secret.txt
