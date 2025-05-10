@@ -12,18 +12,23 @@ async function bringInfo(dataTxid: string) {
     let type_field = "";
     let blockTime = 0;
     const txInfo = await readTransaction(dataTxid);
-    offset = txInfo.offset;
-    type_field = txInfo.type_field;
-    blockTime = txInfo.blockTime;
-    return {type_field, offset, blockTime};
+    if (txInfo) {
+        offset = txInfo.offset;
+        type_field = txInfo.type_field;
+        blockTime = txInfo.blockTime;
+        return {type_field, offset, blockTime};
+    } else {
+        return null
+    }
+
 }
 
-export const fetchSignaturesForCache = async (address: PublicKey, typeString: string = "SolanaInternet", db_max_block_time:number = 0, limit: number = 100): Promise<{
+export const fetchSignaturesForCache = async (address: PublicKey, typeString: string = "SolanaInternet", db_max_block_time: number = 0, limit: number = 100): Promise<{
     txId: string,
     merkleRoot: string,
     blockTime: number
 }[]> => {
-    let before:any = null
+    let before: any = null
     let allSignatures: { txId: string, merkleRoot: string, blockTime: number }[] = [];
     while (true) {
         const signatures = await connection.getSignaturesForAddress(address, {
@@ -33,14 +38,29 @@ export const fetchSignaturesForCache = async (address: PublicKey, typeString: st
         if (signatures.length === 0) break; // 더 이상 가져올 데이터 없음
         for (let i = 0; i < signatures.length; i++) {
             const info = await bringInfo(signatures[i].signature);
+            if (info) {
 
-            if (info.blockTime <= db_max_block_time) {
-                console.log(`🛑 Encountered blockTime (${info.blockTime}) <= latestBlockTime (${db_max_block_time}). Stopping.`);
-                return allSignatures; // ✅ 중단하고 결과 리턴
-            }
+                if (info.blockTime <= db_max_block_time) {
+                    console.log(`🛑 Encountered blockTime (${info.blockTime}) <= latestBlockTime (${db_max_block_time}). Stopping.`);
+                    return allSignatures; // ✅ 중단하고 결과 리턴
+                }
 
-            if (typeString === "SolanaInternet") {
-                if (info.type_field === "image"|| info.type_field === "text") {
+                if (typeString === "SolanaInternet") {
+                    if (info.type_field === "image" || info.type_field === "text") {
+                        if (!allSignatures.includes({
+                            txId: signatures[i].signature,
+                            merkleRoot: info.offset,
+                            blockTime: info.blockTime
+                        })) {
+                            allSignatures.push({
+                                txId: signatures[i].signature,
+                                merkleRoot: info.offset,
+                                blockTime: info.blockTime
+                            });
+
+                        }
+                    }
+                } else if (info.type_field === typeString) {
                     if (!allSignatures.includes({
                         txId: signatures[i].signature,
                         merkleRoot: info.offset,
@@ -54,21 +74,7 @@ export const fetchSignaturesForCache = async (address: PublicKey, typeString: st
 
                     }
                 }
-            } else if (info.type_field === typeString) {
-                if (!allSignatures.includes({
-                    txId: signatures[i].signature,
-                    merkleRoot: info.offset,
-                    blockTime: info.blockTime
-                })) {
-                    allSignatures.push({
-                        txId: signatures[i].signature,
-                        merkleRoot: info.offset,
-                        blockTime: info.blockTime
-                    });
 
-                } else {
-                    return allSignatures;
-                }
             }
         }
         before = signatures[signatures.length - 1].signature;
@@ -222,6 +228,7 @@ export const createDbCodeFreeTransaction = async (userKeyString: any, handle: an
         const userKey: any = new PublicKey(userKeyString);
         const DBPDA = await getDBPDA(userKey);
         const program = new Program(idl as Idl, userKey);
+
         const tx = new web3.Transaction({
             feePayer: userKey, // 수수료 지불자 설정
         });
@@ -235,6 +242,53 @@ export const createDbCodeFreeTransaction = async (userKeyString: any, handle: an
             .instruction();
 
         tx.add(dbcodefreeix);
+        return tx;
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error);
+            throw new Error("Failed to create instruction: " + error.message);
+        } else {
+            throw new Error("Failed to create instruction: " + error);
+        }
+    }
+}
+
+export const createPingDBTransaction = async (userKeyString: any, pingWalletString: any, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
+    try {
+        const _amount = pingAmount * web3.LAMPORTS_PER_SOL;
+        const userKey: any = new PublicKey(userKeyString);
+        const pingKey: any = new PublicKey(pingWalletString);
+
+        const DBPDA = await getDBPDA(userKey);
+        const PINGDBPDA = await getDBPDA(pingKey);
+
+        const program = new Program(idl as Idl, userKey);
+
+        const tx = new web3.Transaction({
+            feePayer: userKey, // 수수료 지불자 설정
+        });
+
+        const transix = web3.SystemProgram.transfer({
+            fromPubkey: userKey, // 송금할 사용자 계정
+            toPubkey: PINGDBPDA,
+            lamports: _amount, // 송금할 금액
+        });
+        tx.add(transix);
+
+        const dbcodeFreeIx = await program.methods
+            .dbCodeInForFree(handle, tail_tx, type, offset)
+            .accounts({
+                user: userKey,
+                dbAccount: DBPDA,
+                systemProgram: SystemProgram.programId,
+            })
+            .remainingAccounts([
+                {pubkey: PINGDBPDA, isSigner: false, isWritable: false},
+            ])
+            .instruction();
+
+        tx.add(dbcodeFreeIx);
+
         return tx;
     } catch (error) {
         if (error instanceof Error) {

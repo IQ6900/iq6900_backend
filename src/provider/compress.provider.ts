@@ -32,10 +32,14 @@ export async function makeAsciiChunks(imgUrl:string) {
     let compressedChunks: compressedChunk[] = []
     let totalChunks:chunkObjectType[] = []
     let chunkSize = 0;
-    let asciiString =await imgToAsciiArt(imgUrl)
+
+
+    let asciiString = await imgToAsciiArt(imgUrl);
+
     if (asciiString) {
         let ascii = asciiString.replace(/\n/g, "");  // 모든 \n을 빈 문자열로 대체
         originalChunks = _getChunk(ascii, DecodeMaxSize);
+
         const merkleroot = generateMerkleRoot(originalChunks);
 
         for (let originalChunk of originalChunks) {
@@ -142,7 +146,16 @@ function mapNumbersToText(numberString: string): string {
 }
 
 function base7ToBase10(octal: string): bigint {
-    return BigInt(parseInt(octal, 7));
+    if (!/^[0-6]+$/.test(octal)) {
+        throw new Error(`Invalid base-7 number: "${octal}"`);
+    }
+    // 문자열을 직접 7진수에서 10진수 BigInt로 변환
+    let result = BigInt(0);
+    let base = BigInt(7);
+    for (let i = 0; i < octal.length; i++) {
+        result = result * base + BigInt(octal[i]);
+    }
+    return result;
 }
 
 function base10ToBase7(decimal: bigint): string {
@@ -180,7 +193,7 @@ function decodeFromBase127(base127Str: string): string {
     let result = '0';
     for (let i = 0; i < base127Str.length; i++) {
         // multiply by 127 and add new digit
-        let temp = BigInt(result) * BigInt(127) + BigInt(CHARSET.indexOf(base127Str[i]));
+        let temp = BigInt(result) * BigInt(CHARSET.length) + BigInt(CHARSET.indexOf(base127Str[i]));
         result = temp.toString();
     }
     return result;
@@ -226,7 +239,6 @@ function rleDecode(encodedNum: number[], encodedText: string[]): string {
             result += encodedText[i].repeat(encodedNum[i] || 0);
         }
     }
-
     return result;
 }
 
@@ -270,7 +282,7 @@ function compress(originalText: string): compressedChunk{
         console.log("optimise with rle");
 
         const decimalValue = rlenum;
-        const base127Value = decimalToBase127(parseInt(decimalValue));
+        const base127Value = decimalToBase127(decimalValue);
         result = base127Value;
 
         console.log("Original number length:", text.length);
@@ -279,7 +291,7 @@ function compress(originalText: string): compressedChunk{
         method = 1;
         console.log("optimise with base7: rate 59.83%");
 
-        const mappedNumbers = parseInt(mapTextToSingleDigitNumbers(text));
+        const mappedNumbers = mapTextToSingleDigitNumbers(text);
         const decimalValue = base7ToBase10(mappedNumbers.toString());
         const base127Value = decimalToBase127(decimalValue);
         result = base127Value;
@@ -289,8 +301,9 @@ function compress(originalText: string): compressedChunk{
     }
 
     if (splitText.length > 1) {
-        result = splitText[0] + ' ]' + result;
+        result = splitText[0] + ']' + result;
     }
+
     let finalResult:compressedChunk = {method:method, result:result};
 
     return finalResult;

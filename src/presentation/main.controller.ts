@@ -168,7 +168,7 @@ export const getTransactionResult = async (req: Request, res: Response): Promise
         if (blockTime !== 0) {
             const resultReverse = result.reverse();
             let response = "";
-            if (type == "image") {
+            if (type == "image"||type == "test_image" || type == "q_image") {
                 response = decodeByChunks(resultReverse);
             } else {
                 let resultText: string = "";
@@ -194,7 +194,7 @@ export const getTransactionResult = async (req: Request, res: Response): Promise
     }
 }
 /**
- * [GET] /get_transaction_result/:tailTx
+ * [GET] /getAsciiChunks/:imageUrl
  * 이미지 URL 로 아스키아트, 청크 만들기
  */
 
@@ -281,6 +281,28 @@ export const createDBFreeTransaction = async (req: Request, res: Response): Prom
         }
     }
 }
+export const createPingDBTransaction = async (req: Request, res: Response): Promise<void> => {
+    const { userKeyString, pingWalletString, pingAmount, handle, tail_tx, type, offset } = req.body;
+    try {
+        const tx = await tp.createPingDBTransaction(
+            userKeyString,
+            pingWalletString,
+            pingAmount,
+            handle,
+            tail_tx,
+            type,
+            offset
+        );
+        res.json({ transaction: tx });
+    } catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: "Failed to create transaction" });
+        }
+    }
+};
+
 /**
  * [POST] /generate-merkle-root
  * Merkle Root 생성
