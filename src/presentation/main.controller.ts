@@ -324,3 +324,13 @@ export const generateMerkleRoot = async (req: Request, res: Response): Promise<a
     }
 
 }
+
+export const getHealth = async(req: Request, resp: Response): Promise<any> => {
+    try {
+        resp.status(200).json({data: 'hello from IQ6900'});
+    }
+    catch (err) {
+        console.log(`getHealth() ERROR: ${err}`);
+        throw err;
+    }
+}

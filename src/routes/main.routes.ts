@@ -3,7 +3,7 @@ import * as controller from '../presentation/main.controller';
 
 export default (router: Router): void => {
     const r = Router();
-
+    r.get('/api/health', controller.getHealth);
     r.get('/getPDA/:userKey', controller.getPDAByUserId);
     r.get('/getCache', controller.getCache);
     r.get('/getTxList', controller.getCachedTxList);
@@ -22,6 +22,8 @@ export default (router: Router): void => {
     r.post('/create-db-ping-transaction', controller.createPingDBTransaction);
 
     r.post('/generate-merkle-root', controller.generateMerkleRoot);
+
+    r.post('')
 
     router.use('/', r);
 }

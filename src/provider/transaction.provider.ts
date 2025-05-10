@@ -5,7 +5,7 @@ import idl from '../../idl.json';
 import {getDBPDA, getPDA} from "./pda.provider";
 
 const amountToSend = 0.003 * web3.LAMPORTS_PER_SOL;
-const connection = new Connection(configs.network);
+const connection = new Connection(configs.network); // API KEY LEAK BEGIN
 
 async function bringInfo(dataTxid: string) {
     let offset = "";
@@ -31,7 +31,7 @@ export const fetchSignaturesForCache = async (address: PublicKey, typeString: st
     let before: any = null
     let allSignatures: { txId: string, merkleRoot: string, blockTime: number }[] = [];
     while (true) {
-        const signatures = await connection.getSignaturesForAddress(address, {
+        const signatures = await connection.getSignaturesForAddress(address, { // FIX API KEY LEAK
             before: before,
             limit: limit, // 한 번에 100개씩 가져오기
         });
@@ -87,7 +87,7 @@ export const readTransaction = async (transaction: string): Promise<any> => {
 
     try {
         // 트랜잭션 가져오기
-        const tx = await connection.getTransaction(transaction);
+        const tx = await connection.getTransaction(transaction); // FIX API KEY LEAK
         if (tx) {
             console.log("Transaction Details:");
             const instructions = tx.transaction.message.instructions;
@@ -118,7 +118,7 @@ export const readTransactionResult = async (transaction: string): Promise<any> =
         // 트랜잭션 가져오기
         do {
             let startTime = performance.now();
-            const tx = await connection.getTransaction(transaction);
+            const tx = await connection.getTransaction(transaction); // FIX API KEY LEAK
             if (tx) {
                 const instructions = tx.transaction.message.instructions;
                 for (const instruction of instructions) {
