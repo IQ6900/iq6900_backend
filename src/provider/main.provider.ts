@@ -31,6 +31,7 @@ export const initializeUserAccounts = async (userKeyString: string) => {
         console.error(error);
     }
 }
+
 export const generateMerkleRoot = (dataList: string[]) => {
     if (dataList.length === 0) return null;
     for (let num = 0; num<dataList.length; num++) {

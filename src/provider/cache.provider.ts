@@ -1,16 +1,28 @@
-import {MongoClient, ObjectId, ServerApiVersion} from 'mongodb';
+import {MongoClient, ServerApiVersion} from 'mongodb';
 import {generateMerkleRoot} from "./main.provider";
 import * as tp from "./transaction.provider";
+import {fetchSignaturesForCache} from "./transaction.provider";
 import {getDecodedChunks} from "./compress.provider";
 import {configs} from "../configs";
-import {fetchSignaturesForCache} from "./transaction.provider";
 import {PublicKey} from "@solana/web3.js";
-import * as timers from "node:timers";
+
+
+export async function getMongoClient(): Promise<MongoClient> {
+    const client = new MongoClient(configs.mongoUri, {
+        serverApi: {
+            version: ServerApiVersion.v1,
+            strict: true,
+            deprecationErrors: true,
+        },
+    });
+    await client.connect();
+    return client;
+}
 
 interface TxDocument {
     _id: string, // ✅ _id를 string으로 설정
     merkle_root: string,
-    block_time:number
+    block_time: number
 }
 
 export const getTxListFromDb = async (
@@ -19,35 +31,29 @@ export const getTxListFromDb = async (
     lastBlockTime: number = 999999999999,  // 기본적으로 가장 최신부터 시작
     _mongoUrl: string = configs.mongoUri
 ) => {
-    const client = new MongoClient(_mongoUrl, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        }
-    });
 
     let database: any;
-    await client.connect();
+    const client = await getMongoClient();
     database = client.db("TransactionLists");
     console.log('Connected to MongoDB');
     const collection = database.collection(`${targetAddress}/${category}`);
 
     const pageSize = 100;
-    let filter: any = { block_time: { $lt: lastBlockTime } };  // blockTime 기준 필터링
-
-    const result = await collection
+    let filter: any = {block_time: {$lt: lastBlockTime}};  // blockTime 기준 필터링
+    let  result = await collection
         .find(filter)
-        .sort({ block_time: -1 })  // 최신 blockTime 기준 내림차순 정렬
+        .sort({block_time: -1})  // 최신 blockTime 기준 내림차순 정렬
         .limit(pageSize)
         .toArray();
-
     await client.close();
     return result;
+
 };
+
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 let isUpdating = false;
 
 export const updateTxListToDb = async (
@@ -64,16 +70,9 @@ export const updateTxListToDb = async (
     await sleep(60000) // 트랜잭션 올라가는 시간 고려
     console.log("✅ updating...");
 
-    const client = new MongoClient(_mongoUrl, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        },
-    });
+    const client = await getMongoClient();
 
     try {
-        await client.connect(); // ✅ MongoDB 연결을 기다려야 함
         const database = client.db("TransactionLists");
         const collection = database.collection<TxDocument>(`${targetAddress}/${category}`);
         const _targetAddress = new PublicKey(targetAddress);
@@ -86,28 +85,20 @@ export const updateTxListToDb = async (
                 {upsert: true}
             );
         }
-
-        await client.close();
         isUpdating = false;
+        await client.close();
         return true;
     } catch (err) {
-        console.error("❌ Error updating MongoDB:", err);
         await client.close();
+        console.error("❌ Error updating MongoDB:", err);
         isUpdating = false;
         return false;
     }
 };
 
 async function getDataFromDb(merkleRoot: string, _mongoUrl: string = configs.mongoUri) {
-    const client = new MongoClient(_mongoUrl, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        }
-    });
+    const client = await getMongoClient();
     let database: any;
-    await client.connect();
     database = client.db('blockchainData');
     console.log('Connected to MongoDB');
     const collection = database.collection('merkleCaches');
@@ -115,30 +106,21 @@ async function getDataFromDb(merkleRoot: string, _mongoUrl: string = configs.mon
         {_id: merkleRoot},
         {projection: {data: 1, _id: 0}}  // `data`만 가져오기
     );
+    await client.close();
     return result?.data;  // `data` 필드
 }
 
 const saveDataToDb = async (merkleRoot: string, data: string, _mongoUrl: string = configs.mongoUri) => {
-    const client = new MongoClient(_mongoUrl, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        }
-    });
+    const client = await getMongoClient();
     let database: any;
-    client.connect()
-        .then(async () => {
-            database = client.db('blockchainData');
-            const collection = database.collection("merkleCaches");
-            const result = await collection.insertOne({_id: merkleRoot, data});
-            console.log("MongoDB result:", result);
-            return result;
-        })
-        .catch((err) => {
-            console.error('Error connecting to MongoDB:', err);
-            return null
-        });
+    database = client.db('blockchainData');
+    const collection = database.collection("merkleCaches");
+    const result = await collection.insertOne({_id: merkleRoot, data});
+
+    console.log("MongoDB result:", result);
+    await client.close();
+    return result;
+
 };
 const getChunks = (chunks: any) => {
     let resultChunks: string[] = [];
@@ -147,6 +129,7 @@ const getChunks = (chunks: any) => {
             resultChunks.push(chunk.code);
         }
     }
+
     return resultChunks;
 }
 
@@ -155,6 +138,7 @@ export const getTransactionInfoFromCacheDb = async (transactionId: string, merkl
         return 'Invalid request: Missing transactionId or merkleRoot';
     }
     const cachedData = await getDataFromDb(merkleRoot, _mongoUrl);
+
     if (cachedData) {
         console.log('Data found in MongoDB');
         return cachedData
@@ -163,15 +147,16 @@ export const getTransactionInfoFromCacheDb = async (transactionId: string, merkl
         try {
             const {result, type, blockTime} = await tp.readTransactionResult(transactionId);
             if (type !== '') {
+
                 const resultReverse = result.reverse();
                 let chunks: string[] = [];
-                if (type == "image"|| type == "test_image" ||type == "q_image") {
-                    chunks = getDecodedChunks(resultReverse, blockTime);
+                if (type == "image" || type == "test_image" || type == "q_image") {
+                    chunks = getDecodedChunks(resultReverse, blockTime);//we need this
                 }
 
-                //else if (type == "text" || type == "json" ||type == "love_letter") {
-                else{
+                else {
                     chunks = getChunks(resultReverse);
+                    // we dont need to chunk this again.
                 }
 
                 const calculatedMerkleRoot = generateMerkleRoot(chunks);
@@ -195,6 +180,17 @@ export const getTransactionInfoFromCacheDb = async (transactionId: string, merkl
         }
     }
 }
-
+export const putChunks = async (chunks: string[], merkleRoot:string, _mongoUrl: string = configs.mongoUri) => {
+    // let chunks = getChunks(dataStr);
+    const calculatedMerkleRoot = generateMerkleRoot(chunks);
+    console.log("calculatedMerkleRoot", calculatedMerkleRoot);
+    if (calculatedMerkleRoot === merkleRoot) {
+        const asciiString = chunks.join('')
+        await saveDataToDb(merkleRoot, asciiString, _mongoUrl);
+        return "success";
+    } else {
+        return ('Merkle root mismatch')
+    }
+}
 
 

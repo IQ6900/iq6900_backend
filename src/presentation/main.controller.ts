@@ -193,6 +193,37 @@ export const getTransactionResult = async (req: Request, res: Response): Promise
         }
     }
 }
+
+export const getTransactionChunks = async (req: Request, res: Response): Promise<void> => {
+    const _transaction = req.params.transaction;
+    try {
+        const {result, transaction, type, blockTime} = await tp.readTransactionAsChunk(_transaction, 100); // 결과를 기다림
+        if (blockTime !== 0) {
+            const resultReverse = result.reverse();
+            let response: { resultStr: string, beforeTx: string } = {resultStr: "", beforeTx: ""};
+
+
+            let resultText: string = "";
+            for (const chunk of resultReverse) {
+                if (chunk.code) {
+                    resultText += chunk.code;
+                }
+            }
+            response.resultStr = resultText;
+            response.beforeTx = transaction;
+            res.send(response);
+        } else {
+            res.send('404 Not Found');
+        }
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error);
+            res.status(500).json({error: error.message}); // 에러 응답
+        } else {
+            res.status(500).json({error: "Failed to get transaction info"}); // 에러 응답
+        }
+    }
+}
 /**
  * [GET] /getAsciiChunks/:imageUrl
  * 이미지 URL 로 아스키아트, 청크 만들기
@@ -260,7 +291,7 @@ export const createDBTransaction = async (req: Request, res: Response): Promise<
 }
 /**
  * [POST] /create-db-code-free-transaction
- * 트랜잭션 DBFREE 코드 생성
+ * 트랜잭션 DB FREE 코드 생성
  */
 export const createDBFreeTransaction = async (req: Request, res: Response): Promise<void> => {
     const {userKeyString, handle, tail_tx, type, offset} = req.body;
@@ -324,3 +355,17 @@ export const generateMerkleRoot = async (req: Request, res: Response): Promise<a
     }
 
 }
+export const putCache = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { chunks, merkleRoot } = req.body;
+
+        if (!chunks || !merkleRoot) {
+            res.status(500);
+        }
+        const response = await cp.putChunks(chunks, merkleRoot);
+        res.send(response);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error instanceof Error ? error.message : "Server error" });
+    }
+};

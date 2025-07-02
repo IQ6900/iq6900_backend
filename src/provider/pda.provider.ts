@@ -9,6 +9,7 @@ export const getPDA = async (userKey: PublicKey): Promise<PublicKey> => {
     );
     return PDA;
 }
+
 export const getDBPDA = async (userKey: PublicKey): Promise<PublicKey> => {
     const [DBPDA, DBbump] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from(configs.dbSeed), userKey.toBuffer()],

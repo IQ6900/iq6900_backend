@@ -109,13 +109,51 @@ export const readTransaction = async (transaction: string): Promise<any> => {
 
     return argData; // 결과 반환
 }
-export const readTransactionResult = async (transaction: string): Promise<any> => {
+export const readTransactionAsChunk = async (transaction: string,chunkCount:number): Promise<any> => {
     let result: any[] = []; // 결과를 저장할 배열
     let lastArgs: any = undefined; // 결과를 저장할 배열
     let type: string = "";
     let blockTime = 0;
+    let i = 0;
     try {
-        // 트랜잭션 가져오기
+        do {
+            const tx = await connection.getTransaction(transaction);
+            if (tx) {
+                const instructions = tx.transaction.message.instructions;
+                for (const instruction of instructions) {
+                    const coder = new BorshInstructionCoder(idl as Idl);
+                    const args = coder.decode(instruction.data, "base58");
+                    if (args) {
+                        lastArgs = args.data;
+                        if (lastArgs["tail_tx"] !== undefined && type === "") {
+                            type = lastArgs["type_field"];
+                        } else {
+                            result.push(lastArgs);
+                        }
+                    }
+                }
+                if (tx.blockTime) {
+                    blockTime = tx.blockTime;
+                }
+            } else {
+                return {result, type, blockTime}; // 결과 반환
+            }
+            transaction = lastArgs["tail_tx"] === undefined ? lastArgs["before_tx"] : lastArgs["tail_tx"];
+            i++;
+        } while (i<chunkCount && lastArgs["before_tx"] !== 'Genesis');
+    } catch (err) {
+        console.error("Error fetching transaction:", err);
+    }
+    return {result, transaction, type, blockTime}; // 결과 반환
+}
+
+export const readTransactionResult = async (transaction: string): Promise<any> => {
+    let result: any[] = []; //chunk list
+    let lastArgs: any = undefined; // 결과를 저장할 배열
+    let type: string = "";
+    let blockTime = 0;
+    try {
+
         do {
             let startTime = performance.now();
             const tx = await connection.getTransaction(transaction);
@@ -223,7 +261,9 @@ export const createDbCodeTransaction = async (userKeyString: any, handle: any, t
     }
 }
 
+//0.003
 export const createDbCodeFreeTransaction = async (userKeyString: any, handle: any, tail_tx: any, type: any, offset: any) => {
+
     try {
         const userKey: any = new PublicKey(userKeyString);
         const DBPDA = await getDBPDA(userKey);
