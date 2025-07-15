@@ -136,7 +136,6 @@ export const updateCachedTxList = async (req: Request, res: Response): Promise<v
         }
     }
 }
-// 아래는 제공용 함수, 라이브러리등을 만들어줄때 우리 디비 말고 그쪽 디비를 쓰도록 유도.
 // export const getCacheFromCustomDB = async (req: Request, res: Response): Promise<void> => {
 //     try {
 //         const { txId, merkleRoot ,dbUrl} = req.query;  // query에서 받기

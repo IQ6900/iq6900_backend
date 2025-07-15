@@ -110,8 +110,8 @@ export const readTransaction = async (transaction: string): Promise<any> => {
     return argData; // 결과 반환
 }
 export const readTransactionAsChunk = async (transaction: string,chunkCount:number): Promise<any> => {
-    let result: any[] = []; // 결과를 저장할 배열
-    let lastArgs: any = undefined; // 결과를 저장할 배열
+    let result: any[] = [];
+    let lastArgs: any = undefined;
     let type: string = "";
     let blockTime = 0;
     let i = 0;
@@ -144,7 +144,7 @@ export const readTransactionAsChunk = async (transaction: string,chunkCount:numb
     } catch (err) {
         console.error("Error fetching transaction:", err);
     }
-    return {result, transaction, type, blockTime}; // 결과 반환
+    return {result, transaction, type, blockTime};
 }
 
 export const readTransactionResult = async (transaction: string): Promise<any> => {
@@ -293,8 +293,8 @@ export const createDbCodeFreeTransaction = async (userKeyString: any, handle: an
         }
     }
 }
-
-export const createPingDBTransaction = async (userKeyString: any, pingWalletString: any, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
+//this is naturally send the data for user, but we need to make new function that directly send to pda for support chatroom
+export const createPingDBTransaction = async (userKeyString: string, pingWalletString: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
     try {
         const _amount = pingAmount * web3.LAMPORTS_PER_SOL;
         const userKey: any = new PublicKey(userKeyString);
