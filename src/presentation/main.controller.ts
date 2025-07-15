@@ -197,11 +197,10 @@ export const getTransactionResult = async (req: Request, res: Response): Promise
 export const getTransactionChunks = async (req: Request, res: Response): Promise<void> => {
     const _transaction = req.params.transaction;
     try {
-        const {result, transaction, type, blockTime} = await tp.readTransactionAsChunk(_transaction, 100); // 결과를 기다림
+        const {result, transaction, type, blockTime} = await tp.readTransactionAsChunk(_transaction, 100);
         if (blockTime !== 0) {
             const resultReverse = result.reverse();
             let response: { resultStr: string, beforeTx: string } = {resultStr: "", beforeTx: ""};
-
 
             let resultText: string = "";
             for (const chunk of resultReverse) {

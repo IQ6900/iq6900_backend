@@ -156,15 +156,16 @@ export const readTransactionResult = async (transaction: string): Promise<any> =
 
         do {
             let startTime = performance.now();
-            const tx = await connection.getTransaction(transaction);
+            const tx = await connection.getTransaction(transaction); // DBPDA Trannsaction.
+
             if (tx) {
-                const instructions = tx.transaction.message.instructions;
+                const instructions = tx.transaction.message.instructions;// DBPDA instructions.
                 for (const instruction of instructions) {
                     const coder = new BorshInstructionCoder(idl as Idl);
                     const args = coder.decode(instruction.data, "base58");
                     if (args) {
                         lastArgs = args.data;
-                        if (lastArgs["tail_tx"] !== undefined && type === "") {
+                        if (lastArgs["tail_tx"] !== undefined && type === "") { //detect metadata trx
                             type = lastArgs["type_field"];
                         } else {
                             result.push(lastArgs);
