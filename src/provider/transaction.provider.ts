@@ -340,11 +340,11 @@ export const createPingDBTransactionToWallet = async (userKeyString: string, pin
         }
     }
 }
-export const createPingDBTransactionToPda = async (userKeyString: string, pingPda: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
+export const createPingDBTransactionToPda = async (userKeyString: string, pingPdaString: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
     try {
         const _amount = pingAmount * web3.LAMPORTS_PER_SOL;
         const userKey: any = new PublicKey(userKeyString);
-        const pingKey: any = new PublicKey(pingPda);
+        const pingKey: any = new PublicKey(pingPdaString);
         const DBPDA = await getDBPDA(userKey);
 
         const program = new Program(idl as Idl, userKey);

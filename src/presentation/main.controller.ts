@@ -332,11 +332,11 @@ export const createPingDBTransactionToWallet = async (req: Request, res: Respons
     }
 };
 export const createPingDBTransactionToPda = async (req: Request, res: Response): Promise<void> => {
-    const { userKeyString, pingPda, pingAmount, handle, tail_tx, type, offset } = req.body;
+    const { userKeyString, pingPdaString, pingAmount, handle, tail_tx, type, offset } = req.body;
     try {
         const tx = await tp.createPingDBTransactionToPda(
             userKeyString,
-            pingPda,
+            pingPdaString,
             pingAmount,
             handle,
             tail_tx,
