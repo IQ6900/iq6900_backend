@@ -24,6 +24,16 @@ export const getPDAByUserId = async (req: Request, res: Response): Promise<void>
         res.status(500).json({error: "Failed to get PDA"});
     }
 }
+export const getServerPDAByUserId = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userKey = new PublicKey(req.params.userKey); // URL 파라미터에서 사용자 키를 가져옴
+        const PDA = await pp.getServerPDA(userKey,req.params.serverId);
+        res.json({PDA: PDA});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({error: "Failed to get PDA"});
+    }
+}
 /**
  * [GET] /getDBPDA/:userKey
  * 사용자 키에 해당하는 DBPDA를 가져옴
@@ -47,6 +57,19 @@ export const initializeUser = async (req: Request, res: Response): Promise<void>
     const userKeyString = req.params.userKey; // URL 파라미터에서 사용자 키를 가져옴
     try {
         const transaction = await mp.initializeUserAccounts(userKeyString);
+        res.json({transaction: transaction});
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            res.status(500).json({error: error.message});
+        } else {
+            res.status(500).json({error: "Failed to initialize user"});
+        }
+    }
+}
+export const initializeServer = async (req: Request, res: Response): Promise<void> => {
+    const { userKey, serverType, serverID, allowedMerkleRoot = "public" } = req.body;
+    try {
+        const transaction = await mp.initializeServerPda(userKey,serverType,serverID,allowedMerkleRoot);
         res.json({transaction: transaction});
     } catch (error: unknown) {
         if (error instanceof Error) {

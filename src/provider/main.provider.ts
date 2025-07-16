@@ -3,8 +3,32 @@ import { Program, Idl, web3 } from '@coral-xyz/anchor';
 import idl from '../../idl.json';
 import bs58 from 'bs58';
 import crypto from 'crypto';
-import { getDBPDA, getPDA } from "./pda.provider";
+import {getServerPDA, getDBPDA, getPDA} from "./pda.provider";
 
+export const initializeServerPda = async (userKeyString:string,serverType:string, serverID:string,allowedMerkleRoot="public") => {
+    const userKey: any = new PublicKey(userKeyString);
+
+    const serverPDA = await getServerPDA(userKey,serverID);
+    try {
+        const program = new Program(idl as Idl, userKey);
+        const tx = new web3.Transaction({
+            feePayer: userKey, // 수수료 지불자 설정
+        });
+        const make_pda = await program.methods
+            .serverInitialize(serverID,serverType,allowedMerkleRoot)
+            .accounts({
+                user: userKey,
+                serverAccount: serverPDA,
+            })
+            .instruction();
+        tx.add(make_pda);
+
+        return tx;
+    } catch (error) {
+        console.error(error);
+    }
+
+}
 export const initializeUserAccounts = async (userKeyString: string) => {
     const userKey: any = new PublicKey(userKeyString);
     const PDA = await getPDA(userKey);
