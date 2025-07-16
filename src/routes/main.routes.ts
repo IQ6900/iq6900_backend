@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as controller from '../presentation/main.controller';
+import {createPingDBTransactionToWallet} from "../provider/transaction.provider";
 
 export default (router: Router): void => {
     const r = Router();
@@ -22,7 +23,8 @@ export default (router: Router): void => {
     r.post('/create-send-transaction', controller.createTransaction);
     r.post('/create-db-code-transaction', controller.createDBTransaction);
     r.post('/create-db-code-free-transaction', controller.createDBFreeTransaction);
-    r.post('/create-db-ping-transaction', controller.createPingDBTransaction);
+    r.post('/create-db-ping-transaction-to-wallet', controller.createPingDBTransactionToWallet);
+    r.post('/create-db-ping-transaction-to-pda', controller.createPingDBTransactionToPda);
 
     r.post('/generate-merkle-root', controller.generateMerkleRoot);
 

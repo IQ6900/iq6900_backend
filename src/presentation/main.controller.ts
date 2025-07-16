@@ -310,12 +310,33 @@ export const createDBFreeTransaction = async (req: Request, res: Response): Prom
         }
     }
 }
-export const createPingDBTransaction = async (req: Request, res: Response): Promise<void> => {
+export const createPingDBTransactionToWallet = async (req: Request, res: Response): Promise<void> => {
     const { userKeyString, pingWalletString, pingAmount, handle, tail_tx, type, offset } = req.body;
     try {
-        const tx = await tp.createPingDBTransaction(
+        const tx = await tp.createPingDBTransactionToWallet(
             userKeyString,
             pingWalletString,
+            pingAmount,
+            handle,
+            tail_tx,
+            type,
+            offset
+        );
+        res.json({ transaction: tx });
+    } catch (error) {
+        if (error instanceof Error) {
+            res.status(500).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: "Failed to create transaction" });
+        }
+    }
+};
+export const createPingDBTransactionToPda = async (req: Request, res: Response): Promise<void> => {
+    const { userKeyString, pingPda, pingAmount, handle, tail_tx, type, offset } = req.body;
+    try {
+        const tx = await tp.createPingDBTransactionToPda(
+            userKeyString,
+            pingPda,
             pingAmount,
             handle,
             tail_tx,

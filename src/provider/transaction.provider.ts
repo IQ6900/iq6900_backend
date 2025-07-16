@@ -294,7 +294,7 @@ export const createDbCodeFreeTransaction = async (userKeyString: any, handle: an
     }
 }
 //this is naturally send the data for user, but we need to make new function that directly send to pda for support chatroom
-export const createPingDBTransaction = async (userKeyString: string, pingWalletString: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
+export const createPingDBTransactionToWallet = async (userKeyString: string, pingWalletString: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
     try {
         const _amount = pingAmount * web3.LAMPORTS_PER_SOL;
         const userKey: any = new PublicKey(userKeyString);
@@ -340,3 +340,48 @@ export const createPingDBTransaction = async (userKeyString: string, pingWalletS
         }
     }
 }
+export const createPingDBTransactionToPda = async (userKeyString: string, pingPda: string, pingAmount:number, handle: any, tail_tx: any, type: any, offset: any) => {
+    try {
+        const _amount = pingAmount * web3.LAMPORTS_PER_SOL;
+        const userKey: any = new PublicKey(userKeyString);
+        const pingKey: any = new PublicKey(pingPda);
+        const DBPDA = await getDBPDA(userKey);
+
+        const program = new Program(idl as Idl, userKey);
+
+        const tx = new web3.Transaction({
+            feePayer: userKey, // 수수료 지불자 설정
+        });
+
+        const transix = web3.SystemProgram.transfer({
+            fromPubkey: userKey, // 송금할 사용자 계정
+            toPubkey: pingKey,
+            lamports: _amount, // 송금할 금액
+        });
+        tx.add(transix);
+
+        const dbcodeFreeIx = await program.methods
+            .dbCodeInForFree(handle, tail_tx, type, offset)
+            .accounts({
+                user: userKey,
+                dbAccount: DBPDA,
+                systemProgram: SystemProgram.programId,
+            })
+            .remainingAccounts([
+                {pubkey: pingKey, isSigner: false, isWritable: false},
+            ])
+            .instruction();
+
+        tx.add(dbcodeFreeIx);
+
+        return tx;
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error);
+            throw new Error("Failed to create instruction: " + error.message);
+        } else {
+            throw new Error("Failed to create instruction: " + error);
+        }
+    }
+}
+
