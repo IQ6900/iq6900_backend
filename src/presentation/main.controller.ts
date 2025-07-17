@@ -26,7 +26,7 @@ export const getPDAByUserId = async (req: Request, res: Response): Promise<void>
 }
 export const getServerPDAByUserId = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userKey = new PublicKey(req.params.userKey); // URL 파라미터에서 사용자 키를 가져옴
+        const userKey = new PublicKey(req.params.userKey);
         const PDA = await pp.getServerPDA(userKey,req.params.serverId);
         res.json({PDA: PDA});
     } catch (error) {

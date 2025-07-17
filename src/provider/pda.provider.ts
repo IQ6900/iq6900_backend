@@ -18,9 +18,9 @@ export const getDBPDA = async (userKey: PublicKey): Promise<PublicKey> => {
     return DBPDA;
 }
 export const getServerPDA = async (userKey: PublicKey,serverID:string): Promise<PublicKey> => {
-    const [chatPDA, chatBump] = web3.PublicKey.findProgramAddressSync(
+    const [serverPDA, serverBump] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from(serverID), userKey.toBuffer()],
         constants.programId
     );
-    return chatPDA;
+    return serverPDA;
 }
