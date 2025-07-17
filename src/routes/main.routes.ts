@@ -13,6 +13,8 @@ export default (router: Router): void => {
     r.get('/getDBPDA/:userKey', controller.getDBPDAByUserId);
     r.get('/initialize-user/:userKey', controller.initializeUser);
     r.post('/initialize-server', controller.initializeServer);
+    r.post('/get-server-pda', controller.getServerPDAByUserId);
+
 
     r.get('/get_transaction_info/:txId', controller.getTransactionInfo);
     r.get('/get_transaction_result/:tailTx', controller.getTransactionResult);
