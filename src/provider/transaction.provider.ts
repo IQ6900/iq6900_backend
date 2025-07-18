@@ -120,6 +120,9 @@ export const readTransactionAsChunk = async (transaction: string,chunkCount:numb
             const tx = await connection.getTransaction(transaction);
             if (tx) {
                 const instructions = tx.transaction.message.instructions;
+                if (!instructions || instructions.length === 0) {
+                    break;
+                }
                 for (const instruction of instructions) {
                     const coder = new BorshInstructionCoder(idl as Idl);
                     const args = coder.decode(instruction.data, "base58");
